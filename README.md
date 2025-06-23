@@ -1,5 +1,7 @@
 # rccar 
 webrtc通讯参考https://github.com/flutter-webrtc/flutter-webrtc-demo?tab=readme-ov-file  
+#
+<img width="180" height="320" src="https://raw.githubusercontent.com/cloudwebrtc/flutter-webrtc-demo/master/screenshots/flutter-webrtc-ios-example.png" style="max-width: 100%;">
 # 
 基于flutter开发的物联网小车远程控制程序，通过webrtc与摄像头端视频通讯，支持屏幕摇杆控制以及xbox手柄摇杆控制，通过mqtt主题转发控制指令实现与接收端的信号传递 
 # 
