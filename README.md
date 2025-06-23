@@ -1,5 +1,5 @@
 # rccar 
-webrtc通讯参考https://github.com/flutter-webrtc/flutter-webrtc-demo?tab=readme-ov-file  
+webrtc通讯参考https://github.com/flutter-webrtc/flutter-webrtc-demo  
 #
 <img width="320" height="180" src="https://github.com/xmgmcat/rccar/blob/f12cec8fe7b4f18457d6fd9f9f2c77369352d9cc/1.png" style="max-width: 100%;">
 <img width="320" height="180" src="https://github.com/xmgmcat/rccar/blob/f12cec8fe7b4f18457d6fd9f9f2c77369352d9cc/2.png" style="max-width: 100%;">
