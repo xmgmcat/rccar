@@ -11,4 +11,4 @@ webrtc通讯参考https://github.com/flutter-webrtc/flutter-webrtc-demo
 # 信令服务端 
 <a href="https://github.com/xmgmcat/flutter-webrtc-server">webrtc-flutter-server</a> 
 # 摄像头端 
-<a href="https://github.com/xmgmcat/camera">webrtc-flutter-server</a>
+<a href="https://github.com/xmgmcat/camera">camera</a>
