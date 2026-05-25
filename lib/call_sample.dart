@@ -44,6 +44,7 @@ class _CallSampleState extends State<CallSample> {
   bool _waitAccept = false; // 是否等待对方接受通话
   bool _isHangingUp = false; // 状态变量，用于标记是否已经挂断
   bool _isMuteMic = false; // 状态变量，用于标记是否已经挂断
+  VideoStats? _videoStats; // 远端视频统计信息
 
   _CallSampleState(); // 构造函数
 
@@ -84,6 +85,7 @@ class _CallSampleState extends State<CallSample> {
   deactivate() {
     super.deactivate();
     mqttServer.disconnect(); //关闭mqtt
+    _signaling?.stopVideoStatsMonitoring(); // 停止视频分斌率等统计
     _signaling?.close(); // 关闭信令连接
     _localRenderer.dispose(); // 释放本地视频渲染器
     _remoteRenderer.dispose(); // 释放远程视频渲染器
@@ -122,11 +124,12 @@ class _CallSampleState extends State<CallSample> {
           });
           break;
         case CallState.CallStateRinging:
-          // 自动接听来电
+        // 自动接听来电
           _accept();
           setState(() {
             _inCalling = true;
           });
+          _signaling?.startVideoStatsMonitoring(session.pc!); ///开始统计
           break;
         case CallState.CallStateBye:
           if (_waitAccept) {
@@ -134,13 +137,16 @@ class _CallSampleState extends State<CallSample> {
             _waitAccept = false;
             Navigator.of(context).pop(false);
           }
+          _signaling?.stopVideoStatsMonitoring(); ///停止并清空统计显示
           setState(() {
             _localRenderer.srcObject = null;
             _remoteRenderer.srcObject = null;
             _inCalling = false;
             _session = null;
+            _videoStats = null;///停止并清空统计显示 参数
           });
           break;
+
         case CallState.CallStateInvite:
           _waitAccept = true;
           break;
@@ -178,6 +184,12 @@ class _CallSampleState extends State<CallSample> {
     _signaling?.onRemoveRemoteStream = ((_, stream) {
       _remoteRenderer.srcObject = null;
     });
+
+    _signaling?.onVideoStatsUpdate = (VideoStats stats) { ///停止统计回调
+      setState(() {
+        _videoStats = stats;
+      });
+    };
   }
 
   /// 显示连接失败的对话框
@@ -265,10 +277,41 @@ class _CallSampleState extends State<CallSample> {
               child: RTCVideoView(
                 _remoteRenderer,
                 objectFit:
-                    RTCVideoViewObjectFit
-                        .RTCVideoViewObjectFitCover, // 设置视频流填充方式为覆盖
+                RTCVideoViewObjectFit
+                    .RTCVideoViewObjectFitCover, // 设置视频流填充方式为覆盖
               ),
             ),
+
+            // 视频统计信息
+            Positioned(
+              top: 6,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    _videoStats != null
+                        ? '${_videoStats!.width}x${_videoStats!.height}  '
+                        '${_videoStats!.fps.toStringAsFixed(1)}fps  '
+                        '${_videoStats!.bitrate.toStringAsFixed(0)}kbps'
+                        : '0x0  '
+                        '0fps  '
+                        '0kbps',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
             // 左侧中间滑杆
             _buildLeftCenterSlider(),
             // 左侧垂直摇杆
@@ -325,7 +368,7 @@ class _CallSampleState extends State<CallSample> {
                           onPressed: _switchCamera,
                           backgroundColor: Colors.transparent,
                           materialTapTargetSize:
-                              MaterialTapTargetSize.shrinkWrap,
+                          MaterialTapTargetSize.shrinkWrap,
                         ),
                       ),
                       SizedBox(
@@ -342,7 +385,7 @@ class _CallSampleState extends State<CallSample> {
                           ),
                           backgroundColor: Colors.transparent,
                           materialTapTargetSize:
-                              MaterialTapTargetSize.shrinkWrap,
+                          MaterialTapTargetSize.shrinkWrap,
                         ),
                       ),
                       SizedBox(
@@ -359,7 +402,7 @@ class _CallSampleState extends State<CallSample> {
                           ),
                           backgroundColor: Colors.transparent,
                           materialTapTargetSize:
-                              MaterialTapTargetSize.shrinkWrap,
+                          MaterialTapTargetSize.shrinkWrap,
                         ),
                       ),
                     ],

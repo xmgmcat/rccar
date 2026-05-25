@@ -27,6 +27,20 @@ enum CallState {
 enum VideoSource {
   Camera, // 摄像头
 }
+/// 远程视频统计数据
+class VideoStats {
+  final int width;
+  final int height;
+  final double fps;
+  final double bitrate; // kbps
+
+  VideoStats({
+    this.width = 0,
+    this.height = 0,
+    this.fps = 0,
+    this.bitrate = 0,
+  });
+}
 
 /// 会话类，表示一个WebRTC会话。
 class Session {
@@ -65,35 +79,29 @@ class Signaling {
   onDataChannelMessage; // 数据通道消息回调
   Function(Session session, RTCDataChannel dc)? onDataChannel; // 数据通道回调
 
+  Timer? _statsTimer;
+  int? _lastBytesReceived;
+  DateTime? _lastStatsTime;
+  Function(VideoStats stats)? onVideoStatsUpdate; // 视频统计更新回调
+
   String get sdpSemantics => 'unified-plan'; // SDP语义，默认为Unified Plan
 
   Map<String, dynamic> _iceServers = {
-    'iceServers': [
-      {'url': 'stun:'+Server.stunurl},
-      /*
-       * turn server configuration example.
-      {
-        'url': 'turn:123.45.67.89:3478',
-        'username': 'change_to_real_user',
-        'credential': 'change_to_real_secret'
-      },
-      */
-    ],
-    // 添加H264相关参数
-    'iceTransportPolicy': 'relay',
+    'iceServers': [],
+    'iceTransportPolicy': 'all',
     'bundlePolicy': 'max-bundle',
     'rtcpMuxPolicy': 'require'
   };
+
 
   final Map<String, dynamic> _config = {
     'mandatory': {},
     'optional': [
       {'DtlsSrtpKeyAgreement': true}, // 启用DTLS-SRTP密钥协商
-      // 添加H264编解码器优先级配置
-      {'googCpuOveruseDetection': true},
-      {'googCpuOveruseEncodeUsage': true}
+      // {'googCpuOveruseDetection': true},
+      // {'googCpuOveruseEncodeUsage': true}
     ],
-    // 指定视频编解码器
+    // 添加H264编解码器优先级配置
     'codecs': {
       'video': [
         'H264',
@@ -118,6 +126,74 @@ class Signaling {
     await _cleanSessions();
     _socket?.close();
   }
+
+  /// 开始视频统计监控
+  void startVideoStatsMonitoring(RTCPeerConnection pc) {
+    stopVideoStatsMonitoring();
+    _lastBytesReceived = null;
+    _lastStatsTime = null;
+    print('VideoStats: monitoring started');
+    _statsTimer = Timer.periodic(const Duration(seconds: 2), (_) async {
+      var stats = await _fetchVideoStats(pc);
+      if (stats != null) {
+        onVideoStatsUpdate?.call(stats);
+      }
+    });
+  }
+
+  /// 停止视频统计监控
+  void stopVideoStatsMonitoring() {
+    _statsTimer?.cancel();
+    _statsTimer = null;
+  }
+
+  /// 获取远端视频统计信息
+  Future<VideoStats?> _fetchVideoStats(RTCPeerConnection pc) async {
+    try {
+      List<StatsReport> reports = await pc.getStats();
+      int width = 0, height = 0;
+      double fps = 0;
+      int bytesReceived = 0;
+      bool found = false;
+
+      for (var report in reports) {
+        if (report.type == 'inbound-rtp') {
+          var kind = report.values['kind'] ?? report.values['mediaType'] ?? '';
+          if (kind == 'video') {
+            found = true;
+            width = report.values['frameWidth'] ?? 0;
+            height = report.values['frameHeight'] ?? 0;
+            fps = (report.values['framesPerSecond'] ?? report.values['framerateMean'] ?? 0).toDouble();
+            bytesReceived = report.values['bytesReceived'] ?? 0;
+            print('VideoStats: inbound-rtp found => ${width}x${height}, ${fps}fps, ${bytesReceived}bytes');
+            break;
+          }
+        }
+      }
+
+      if (!found) {
+        print('VideoStats: no inbound-rtp video stats found among ${reports.length} reports. Types: ${reports.map((r) => r.type).toSet()}');
+      }
+
+      double bitrateKbps = 0;
+      var now = DateTime.now();
+      if (_lastBytesReceived != null && _lastStatsTime != null && found) {
+        int byteDiff = bytesReceived - _lastBytesReceived!;
+        var timeDiffSec = now.difference(_lastStatsTime!).inMilliseconds / 1000.0;
+        if (timeDiffSec > 0) {
+          bitrateKbps = (byteDiff * 8) / timeDiffSec / 1000.0;
+        }
+      }
+      _lastBytesReceived = bytesReceived;
+      _lastStatsTime = now;
+
+      return VideoStats(width: width, height: height, fps: fps, bitrate: bitrateKbps);
+    } catch (e) {
+      print('Error fetching video stats: $e');
+      return null;
+    }
+  }
+
 
   /// 通知对端切换摄像头。
   void switchCamera() {
@@ -299,14 +375,20 @@ class Signaling {
             "uris": ["turn:127.0.0.1:19302?transport=udp"]
           }
         */
+        String turnUri = _turnCredential['uris'][0];
+        String stunUri = turnUri.replaceFirst('turn:', 'stun:').split('?')[0];
         _iceServers = {
           'iceServers': [
+            {'urls': stunUri},
             {
-              'urls': _turnCredential['uris'][0],
+              'urls': turnUri,
               'username': _turnCredential['username'],
               'credential': _turnCredential['password']
             },
-          ]
+          ],
+          'iceTransportPolicy': 'all',
+          'bundlePolicy': 'max-bundle',
+          'rtcpMuxPolicy': 'require'
         };
       } catch (e) {}
     }
@@ -609,6 +691,7 @@ class Signaling {
 
   /// 关闭指定的会话，停止并释放本地流，关闭对等连接和数据通道。
   Future<void> _closeSession(Session session) async {
+    stopVideoStatsMonitoring(); //停止统计
     _localStream?.getTracks().forEach((element) async {
       await element.stop();
     });
@@ -620,4 +703,5 @@ class Signaling {
     _senders.clear();
     _videoSource = VideoSource.Camera;
   }
+
 }

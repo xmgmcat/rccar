@@ -1,6 +1,5 @@
 class Server {
   static String host = ''; // WebSocket服务器地址
-  static String stunurl = ''; // STUN服务器地址
   static String room = ''; // 房间号
   static String formid = ''; // 摄像端房间号
   static String mqtthost = ''; // mqtt服务地址

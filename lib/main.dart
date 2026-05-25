@@ -47,7 +47,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _initSharedPreferences() async {
     final prefs = await SharedPreferences.getInstance();
     Server.host = prefs.getString('host') ?? '';
-    Server.stunurl = prefs.getString('stun') ?? 'stun:stun.l.google.com:19302';
     Server.room = prefs.getString('room') ?? '';
     Server.formid = prefs.getString('formid') ?? '';
     Server.mqtthost = prefs.getString('mqtthost') ?? '';
@@ -65,20 +64,6 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
     }
-
-    // // 在build方法中检查数据是否为空
-    // if (!_dataCheck()) {
-    //   // 如果信令服务器地址为空，则弹出设置设置框
-    //   WidgetsBinding.instance.addPostFrameCallback((_) {
-    //     _showSettingsDialog(context);
-    //   });
-    // }
-    // else {
-    //   // 如果信令服务器地址不为空，自动跳转call
-    //   WidgetsBinding.instance.addPostFrameCallback((_) {
-    //     _callNva(); //跳转
-    //   });
-    // }
 
     return Scaffold(
       appBar: AppBar(
@@ -117,13 +102,12 @@ class _HomeScreenState extends State<HomeScreen> {
   /// 弹出设置对话框
   void _showSettingsDialog(BuildContext context) async {
     final TextEditingController controller1 = TextEditingController(text: Server.host);
-    final TextEditingController controller2 = TextEditingController(text: Server.stunurl);
-    final TextEditingController controller3 = TextEditingController(text: Server.room);
-    final TextEditingController controller4 = TextEditingController(text: Server.formid);
-    final TextEditingController controller5 = TextEditingController(text: Server.mqtthost);
-    final TextEditingController controller6 = TextEditingController(text: Server.mqttusername);
-    final TextEditingController controller7 = TextEditingController(text: Server.mqttpassword);
-    final TextEditingController controller8 = TextEditingController(text: Server.topicpub);
+    final TextEditingController controller2 = TextEditingController(text: Server.room);
+    final TextEditingController controller3 = TextEditingController(text: Server.formid);
+    final TextEditingController controller4 = TextEditingController(text: Server.mqtthost);
+    final TextEditingController controller5 = TextEditingController(text: Server.mqttusername);
+    final TextEditingController controller6 = TextEditingController(text: Server.mqttpassword);
+    final TextEditingController controller7 = TextEditingController(text: Server.topicpub);
 
     showDialog(
       context: context,
@@ -140,30 +124,26 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 TextField(
                   controller: controller2,
-                  decoration: InputDecoration(labelText: 'stun服务地址'),
-                ),
-                TextField(
-                  controller: controller3,
                   decoration: InputDecoration(labelText: '本机房间号'),
                 ),
                 TextField(
-                  controller: controller4,
+                  controller: controller3,
                   decoration: InputDecoration(labelText: '摄像端房间号'),
                 ),
                 TextField(
-                  controller: controller5,
+                  controller: controller4,
                   decoration: InputDecoration(labelText: 'mqtt服务地址'),
                 ),
                 TextField(
-                  controller: controller6,
+                  controller: controller5,
                   decoration: InputDecoration(labelText: 'mqtt用户名'),
                 ),
                 TextField(
-                  controller: controller7,
+                  controller: controller6,
                   decoration: InputDecoration(labelText: 'mqtt密码'),
                 ),
                 TextField(
-                  controller: controller8,
+                  controller: controller7,
                   decoration: InputDecoration(labelText: '发布主题'),
                 ),
               ],
@@ -178,8 +158,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     controller4.text.isEmpty ||
                     controller5.text.isEmpty ||
                     controller6.text.isEmpty ||
-                    controller7.text.isEmpty ||
-                    controller8.text.isEmpty) {
+                    controller7.text.isEmpty ) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('缺少必要数据')),
                   );
@@ -195,7 +174,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   controller5.text,
                   controller6.text,
                   controller7.text,
-                  controller8.text,
                 );
                 Navigator.of(context).pop();
                 // 进入call
@@ -211,16 +189,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// 保存数据到 SharedPreferences
   Future<void> _saveData(String value1, String value2, String value3, String value4, String value5,
-      String value6, String value7, String value8) async {
+      String value6, String value7) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('host', value1);
-    await prefs.setString('stun', value2);
-    await prefs.setString('room', value3);
-    await prefs.setString('formid', value4);
-    await prefs.setString('mqtthost', value5);
-    await prefs.setString('mqttusername', value6);
-    await prefs.setString('mqttpassword', value7);
-    await prefs.setString('topicpub', value8);
+    await prefs.setString('room', value2);
+    await prefs.setString('formid', value3);
+    await prefs.setString('mqtthost', value4);
+    await prefs.setString('mqttusername', value5);
+    await prefs.setString('mqttpassword', value6);
+    await prefs.setString('topicpub', value7);
     /// 更新全局变量
     _initSharedPreferences();
   }
@@ -231,7 +208,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// 检查数据是否为空
   bool _dataCheck() {
-    return Server.host.isNotEmpty && Server.stunurl.isNotEmpty && Server.room.isNotEmpty && Server.formid.isNotEmpty
+    return Server.host.isNotEmpty && Server.room.isNotEmpty && Server.formid.isNotEmpty
         && Server.mqtthost.isNotEmpty && Server.mqttusername.isNotEmpty && Server.mqttpassword.isNotEmpty &&
         Server.topicpub.isNotEmpty;
   }
