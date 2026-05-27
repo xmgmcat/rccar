@@ -93,7 +93,7 @@ jobs:
         run: flutter build windows --release
 
       - name: Archive Windows build (zip)
-        run: Compress-Archive -Path build/windows/runner/Release/* -DestinationPath windows-release.zip
+        run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath windows-release.zip
 
       - name: Upload Windows zip as artifact
         uses: actions/upload-artifact@v4
