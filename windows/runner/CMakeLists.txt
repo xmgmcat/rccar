@@ -22,13 +22,13 @@ set(SDL3_DLL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../lib")
 
 # 根据架构选择对应 DLL
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "ARM64" OR CMAKE_VS_PLATFORM_NAME STREQUAL "ARM64")
-    set(SDL3_DLL_SOURCE_PATH "${SDL3_DLL_DIR}/arm64/SDL3.dll")
+    set(SDL3_DLL_SOURCE_PATH "${SDL3_DLL_DIR}/dl3-arm64/SDL3.dll")
     message(STATUS "Building for ARM64 architecture")
 elseif(CMAKE_SIZEOF_VOID_P EQUAL 8)
-    set(SDL3_DLL_SOURCE_PATH "${SDL3_DLL_DIR}/x64/SDL3.dll")
+    set(SDL3_DLL_SOURCE_PATH "${SDL3_DLL_DIR}/dl3-x64/SDL3.dll")
     message(STATUS "Building for x64 architecture")
 else()
-    set(SDL3_DLL_SOURCE_PATH "${SDL3_DLL_DIR}/x86/SDL3.dll")
+    set(SDL3_DLL_SOURCE_PATH "${SDL3_DLL_DIR}/dl3-x86/SDL3.dll")
     message(STATUS "Building for x86 architecture")
 endif()
 
