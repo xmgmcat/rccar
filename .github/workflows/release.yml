@@ -35,6 +35,11 @@ jobs:
       - name: Build release APKs (split by ABI)
         run: flutter build apk --release --split-per-abi
 
+      - name: Filter APKs (remove x86)
+        run: |
+          cd android-artifacts
+          rm -f *x86*.apk
+
       - name: Upload APKs as artifacts
         uses: actions/upload-artifact@v4
         with:
