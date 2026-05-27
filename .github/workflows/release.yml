@@ -1,0 +1,112 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'               # 当你推送 v1.0.0 这样的 tag 时自动触发
+  workflow_dispatch:       # 也支持手动触发（在 GitHub Actions 页面点按钮）
+
+permissions:
+  contents: write          # 允许创建 Release 和上传附件
+
+jobs:
+  build-android:
+    name: Build Android (32 & 64 bit)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.29.3'   # flutter版本
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build release APKs (split by ABI)
+        run: flutter build apk --release --split-per-abi
+
+      - name: Upload APKs as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apks
+          path: build/app/outputs/flutter-apk/*.apk
+
+  build-windows:
+    name: Build Windows (64-bit)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.29.3'
+          cache: true
+
+      - name: Enable Windows desktop support
+        run: flutter config --enable-windows-desktop
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Windows release
+        run: flutter build windows --release
+
+      - name: Archive Windows build (zip)
+        run: Compress-Archive -Path build/windows/runner/Release/* -DestinationPath windows-release.zip
+
+      - name: Upload Windows zip as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-zip
+          path: windows-release.zip
+
+  create-release:
+    name: Create GitHub Release & Upload Assets
+    needs: [build-android, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code (to read pubspec.yaml)
+        uses: actions/checkout@v4
+
+      - name: Download Android APKs
+        uses: actions/download-artifact@v4
+        with:
+          name: android-apks
+          path: android-artifacts
+
+      - name: Download Windows zip
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-zip
+          path: windows-artifacts
+
+      - name: Get version from pubspec.yaml
+        id: get_version
+        run: |
+          VERSION=$(grep '^version: ' pubspec.yaml | sed 's/version: //' | tr -d '[:space:]')
+          echo "app_version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create Release and upload assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.get_version.outputs.app_version }}
+          name: Release v${{ steps.get_version.outputs.app_version }}
+          draft: false
+          prerelease: false
+          files: |
+            android-artifacts/*.apk
+            windows-artifacts/windows-release.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
