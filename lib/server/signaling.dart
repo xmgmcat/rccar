@@ -105,7 +105,9 @@ class Signaling {
     'codecs': {
       'video': [
         'H264',
-        'VP8',  // 保留备选方案
+        'VP8',
+        'red',
+        'ulpfec',
       ]
     }
   };
@@ -432,20 +434,23 @@ class Signaling {
   Future<MediaStream> createStream(String media) async {
     final Map<String, dynamic> mediaConstraints = {
       'audio': true,
-      'video': false
+      'video': false //不生成本地视频
       // 'video': {  //地视频生成
       //   'mandatory': {
-      //     'minWidth': '1',
-      //     'minHeight': '1',
-      //     'minFrameRate': '1',
+      //     'minWidth': '1920',  //请求最小分辨率
+      //     'minHeight': '1080',
+      //     'maxWidth': '1920', // 锁定最大宽度，防止摄像头跳到 4K 导致帧率下降
+      //     'maxHeight': '1080',
+      //     'minFrameRate': '30',
+      //     'maxFrameRate': '60',
       //     // 强制使用H264
       //     'googVideoH264Enabled': true,
-      //     'googVideoH264ProfileLevelId': '42e01f'
+      //     'googVideoH264ProfileLevelId': '640029'
       //   },
       //   'optional': [
-      //     {'profile-level-id': '42e01f'},
+      //     {'profile-level-id': '640029'},
       //     {'level-asymmetry-allowed': 1},
-      //     {'packetization-mode': 1}
+      //     {'packetization-mode': 1},
       //   ]
       // }
     };
@@ -606,16 +611,16 @@ class Signaling {
   RTCSessionDescription _fixSdp(RTCSessionDescription s) {
     var sdp = s.sdp;
 
-    // 强制使用H264编码
-    sdp = sdp!.replaceAll('profile-level-id=640c1f', 'profile-level-id=42e01f'); // Baseline profile
+    // 强制使用 H.264 High Profile, Level 4.1
+    sdp = sdp!.replaceAll('profile-level-id=640c1f', 'profile-level-id=640029');
 
     // 调整编解码器优先级
     sdp = sdp.replaceAll(
         'a=rtpmap:100 VP8/90000',
-        'a=rtpmap:100 H264/90000\r\na=fmtp:100 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f'
+        'a=rtpmap:100 H264/90000\r\na=fmtp:100 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=640029'
     );
 
-    // H264是首选编码
+    // 确保H264是首选编码
     sdp = sdp.replaceAllMapped(RegExp(r'm=video.*'), (match) {
       return match.group(0)!
           .replaceAll('VP8', 'H264')
