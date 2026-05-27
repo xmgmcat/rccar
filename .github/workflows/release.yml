@@ -23,6 +23,16 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      # 临时将阿里云镜像替换为官方仓库（不修改仓库中的文件）
+      - name: Replace Aliyun mirrors with official repos (temporary)
+        run: |
+          # 备份原始文件（可选）
+          cp android/build.gradle.kts android/build.gradle.kts.bak
+          # 删除或注释所有包含 maven.aliyun.com 的行
+          sed -i '/maven.aliyun.com/d' android/build.gradle.kts
+          echo "Modified android/build.gradle.kts:"
+          grep -E "repositories|google|mavenCentral" android/build.gradle.kts || true
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
