@@ -26,7 +26,9 @@ jobs:
       # 临时将阿里云镜像替换为官方仓库（不修改仓库中的文件）
       - name: Replace Aliyun mirrors with official repos (temporary)
         run: |
+          # 备份原始文件（可选）
           cp android/build.gradle.kts android/build.gradle.kts.bak
+          # 删除或注释所有包含 maven.aliyun.com 的行
           sed -i '/maven.aliyun.com/d' android/build.gradle.kts
           echo "Modified android/build.gradle.kts:"
           grep -E "repositories|google|mavenCentral" android/build.gradle.kts || true
@@ -87,12 +89,32 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Clean previous build (optional)
-        run: flutter clean
+      # 动态检测 Visual Studio 版本并设置 CMake 生成器
+      - name: Build Windows release (auto-detect VS)
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $vsPath = & $vswhere -latest -property installationPath
+          if (-not $vsPath) {
+            Write-Error "未找到 Visual Studio 安装"
+            exit 1
+          }
+          
+          $vsVersion = & $vswhere -latest -property catalog_productLineVersion
+          $majorVersion = $vsVersion.Split('.')[0]
 
-      - name: Build Windows release
-        # 关键：指定 CMake 生成器为 Visual Studio 2022
-        run: flutter build windows --release --cmake-generator "Visual Studio 17 2022"
+          $generator = switch ($majorVersion) {
+            "17" { "Visual Studio 17 2022" }
+            "16" { "Visual Studio 16 2019" }
+            "15" { "Visual Studio 15 2017" }
+            default { 
+              Write-Error "不支持的 Visual Studio 版本: $majorVersion"
+              exit 1
+            }
+          }
+          echo "CMAKE_GENERATOR=$generator" >> $env:GITHUB_ENV
+          flutter clean
+          flutter build windows --release
 
       - name: Archive Windows build (zip)
         run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath windows-release.zip
