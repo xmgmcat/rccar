@@ -435,24 +435,7 @@ class Signaling {
     final Map<String, dynamic> mediaConstraints = {
       'audio': true,
       'video': false //不生成本地视频
-      // 'video': {  //地视频生成
-      //   'mandatory': {
-      //     'minWidth': '1920',  //请求最小分辨率
-      //     'minHeight': '1080',
-      //     'maxWidth': '1920', // 锁定最大宽度，防止摄像头跳到 4K 导致帧率下降
-      //     'maxHeight': '1080',
-      //     'minFrameRate': '30',
-      //     'maxFrameRate': '60',
-      //     // 强制使用H264
-      //     'googVideoH264Enabled': true,
-      //     'googVideoH264ProfileLevelId': '640029'
-      //   },
-      //   'optional': [
-      //     {'profile-level-id': '640029'},
-      //     {'level-asymmetry-allowed': 1},
-      //     {'packetization-mode': 1},
-      //   ]
-      // }
+      
     };
 
     MediaStream stream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
