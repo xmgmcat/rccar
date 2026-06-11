@@ -72,7 +72,8 @@ jobs:
 
   build-windows:
     name: Build Windows (64-bit)
-    runs-on: windows-latest
+    # 方案一：使用 windows-2022 镜像（内置 VS 2022，稳定版本）
+    runs-on: windows-2022
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -89,32 +90,15 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # 动态检测 Visual Studio 版本并设置 CMake 生成器
-      - name: Build Windows release (auto-detect VS)
-        shell: pwsh
-        run: |
-          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-          $vsPath = & $vswhere -latest -property installationPath
-          if (-not $vsPath) {
-            Write-Error "未找到 Visual Studio 安装"
-            exit 1
-          }
-          
-          $vsVersion = & $vswhere -latest -property catalog_productLineVersion
-          $majorVersion = $vsVersion.Split('.')[0]
+      # 设置 CMake 生成器为 VS 2022（与 windows-2022 环境匹配）
+      - name: Set CMake generator
+        run: echo "CMAKE_GENERATOR=Visual Studio 17 2022" >> $env:GITHUB_ENV
 
-          $generator = switch ($majorVersion) {
-            "17" { "Visual Studio 17 2022" }
-            "16" { "Visual Studio 16 2019" }
-            "15" { "Visual Studio 15 2017" }
-            default { 
-              Write-Error "不支持的 Visual Studio 版本: $majorVersion"
-              exit 1
-            }
-          }
-          echo "CMAKE_GENERATOR=$generator" >> $env:GITHUB_ENV
-          flutter clean
-          flutter build windows --release
+      - name: Clean previous build
+        run: flutter clean
+
+      - name: Build Windows release
+        run: flutter build windows --release
 
       - name: Archive Windows build (zip)
         run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath windows-release.zip
