@@ -17,17 +17,16 @@ abstract class GameController {
   void dispose();
 }
 
-/// CallSample类，继承自StatefulWidget
-class CallSample extends StatefulWidget {
+class CallDevlist extends StatefulWidget {
   final String host; // WebSocket服务器地址
-  CallSample({required this.host}); // 构造函数，初始化服务器地址
+  CallDevlist({required this.host}); // 构造函数，初始化服务器地址
 
   @override
-  _CallSampleState createState() => _CallSampleState(); // 创建状态管理对象
+  _CallDevlistState createState() => _CallDevlistState(); // 创建状态管理对象
 }
 
-/// _CallSampleState类，管理CallSample界面的状态
-class _CallSampleState extends State<CallSample> {
+///管理CallDevlist界面的状态
+class _CallDevlistState extends State<CallDevlist> {
   late MqttServer mqttServer;
 
   late GameController _gameController;
@@ -46,7 +45,7 @@ class _CallSampleState extends State<CallSample> {
   bool _isMuteMic = false; // 状态变量，用于标记是否已经挂断
   VideoStats? _videoStats; // 远端视频统计信息
 
-  _CallSampleState(); // 构造函数
+  _CallDevlistState(); // 构造函数
 
   @override
   initState() {
@@ -58,6 +57,7 @@ class _CallSampleState extends State<CallSample> {
     ]);
     // 隐藏状态栏和导航栏
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
+
     initRenderers().then((_) {
       // 初始化视频渲染器
       // 等待初始化完成在连接
@@ -73,7 +73,6 @@ class _CallSampleState extends State<CallSample> {
     }
     _gameController.init(); // 初始化手柄
   }
-
 
   /// 初始化视频渲染器
   initRenderers() async {

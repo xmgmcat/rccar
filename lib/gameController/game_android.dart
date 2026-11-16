@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/services.dart';
-import '../call_sample.dart';
+import '../call_devlist.dart';
 import '../server.dart';
 
 class GameAndroid implements GameController {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'call_sample.dart';
+import 'call_devlist.dart';
 import 'server.dart';
 
 void main() => runApp(MyApp());
@@ -13,7 +13,7 @@ class MyApp extends StatelessWidget {
       initialRoute: 'home', // 设置初始路由设置主页为 home
       routes: {
         'home': (context) => HomeScreen(),
-        'CallSample': (context) => CallSample(host: Server.host), // 定义 CallSample 路由
+        'CallDevlist': (context) => CallDevlist(host: Server.host), // 定义路由
       },
     );
   }
@@ -43,7 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
     await [Permission.camera, Permission.microphone].request();
   }
 
-  /// 初始化读取SharedPreferences数据，并设置到服务变量仓库
+  /// 初始化读取SharedPreferences数据，并设置到服务变量实例
   Future<void> _initSharedPreferences() async {
     final prefs = await SharedPreferences.getInstance();
     Server.host = prefs.getString('host') ?? '';
@@ -203,7 +203,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _callNva() async {
-    Navigator.pushNamed(context, 'CallSample');
+    Navigator.pushNamed(context, 'CallDevlist');
   }
 
   /// 检查数据是否为空
