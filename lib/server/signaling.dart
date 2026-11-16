@@ -5,7 +5,6 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 import '../server.dart';
 import 'websocket.dart' if (dart.library.js) 'websocket_web.dart';
 import 'turn.dart' if (dart.library.js) 'turn_web.dart';
-import '../device_info.dart';
 
 /// 信令状态枚举，表示WebRTC信令连接的状态。
 enum SignalingState {
@@ -82,6 +81,7 @@ class Signaling {
   Timer? _statsTimer;
   int? _lastBytesReceived;
   DateTime? _lastStatsTime;
+  Timer? _pubMseTimer;
   Function(VideoStats stats)? onVideoStatsUpdate; // 视频统计更新回调
 
   String get sdpSemantics => 'unified-plan'; // SDP语义，默认为Unified Plan
@@ -211,6 +211,27 @@ class Signaling {
       bool enabled = _localStream!.getAudioTracks()[0].enabled;
       _localStream!.getAudioTracks()[0].enabled = !enabled;
     }
+  }
+
+  /// 通过websocket发送遥控数据,定时发送数据
+  void pubMessage() {
+    _pubMseTimer = Timer.periodic(Duration(milliseconds: 100), (_) {
+      final data = {
+        'joyaqh': Server.joyaqh,
+        'joybzy': Server.joybzy,
+        'btnabxy': Server.btnabxy,
+        'udlr': Server.udlr,
+        'lt': Server.lt,
+        'rt': Server.rt,
+        'speed': Server.speed,
+        'zxjd': Server.zxjd,
+      };
+      final jsonData = jsonEncode(data);
+      _send('message', {
+        'toid': Server.formid,
+        'content': jsonData,
+      });
+    });
   }
 
   /// 通知视频发送端对我进行视频邀请。
@@ -399,15 +420,13 @@ class Signaling {
       print('onOpen');
       onSignalingStateChange?.call(SignalingState.ConnectionOpen);
       _send('new', {
-        'name': DeviceInfo.label,
         'id': _selfId,
-        'user_agent': DeviceInfo.userAgent
       });
 
       //设备连接成功上线，
       // 连接完成，根据 formid 发起通话邀请通知
       invite(Server.formid);
-
+      pubMessage(); //启动遥控数据发送定时器
     };
 
     _socket?.onMessage = (message) {
@@ -593,23 +612,8 @@ class Signaling {
   /// 返回修改后的SDP描述。
   RTCSessionDescription _fixSdp(RTCSessionDescription s) {
     var sdp = s.sdp;
-
-    // 强制使用 H.264 High Profile, Level 4.1
-    sdp = sdp!.replaceAll('profile-level-id=640c1f', 'profile-level-id=640029');
-
-    // 调整编解码器优先级
-    sdp = sdp.replaceAll(
-        'a=rtpmap:100 VP8/90000',
-        'a=rtpmap:100 H264/90000\r\na=fmtp:100 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=640029'
-    );
-
-    // 确保H264是首选编码
-    sdp = sdp.replaceAllMapped(RegExp(r'm=video.*'), (match) {
-      return match.group(0)!
-          .replaceAll('VP8', 'H264')
-          .replaceAll('VP9', 'H264');
-    });
-
+    // 移除视频方向标记，强制接收端按横屏渲染
+    sdp = sdp?.replaceAll("a=extmap:13 urn:3gpp:video-orientation\r\n", "");
     return RTCSessionDescription(sdp, s.type);
   }
 
