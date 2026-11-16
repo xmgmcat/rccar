@@ -72,7 +72,8 @@ jobs:
 
   build-windows:
     name: Build Windows (64-bit)
-    runs-on: windows-latest
+    # 方案一：使用 windows-2022 镜像（内置 VS 2022，稳定版本）
+    runs-on: windows-2022
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -88,6 +89,13 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
+
+      # 设置 CMake 生成器为 VS 2022（与 windows-2022 环境匹配）
+      - name: Set CMake generator
+        run: echo "CMAKE_GENERATOR=Visual Studio 17 2022" >> $env:GITHUB_ENV
+
+      - name: Clean previous build
+        run: flutter clean
 
       - name: Build Windows release
         run: flutter build windows --release
